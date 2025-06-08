@@ -57,6 +57,7 @@ static double reportPotentialOccupancy(void *kernel, int blockSize, size_t dynam
     checkCudaErrors(cudaGetDevice(&device));
     checkCudaErrors(cudaGetDeviceProperties(&prop, device));
 
+    // 这个函数很有意思, 根据给定的核函数, block size和动态smem, 就能返回MaxActiveBlocksPerSM
     checkCudaErrors(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
                         &numBlocks,
                         kernel,
@@ -66,6 +67,7 @@ static double reportPotentialOccupancy(void *kernel, int blockSize, size_t dynam
     activeWarps = numBlocks * blockSize / prop.warpSize;
     maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
 
+    // 然后算得occupancy
     occupancy = (double)activeWarps / maxWarps;
 
     return occupancy;
@@ -105,6 +107,7 @@ static int launchConfig(int *array, int arrayCount, bool automatic)
     checkCudaErrors(cudaEventCreate(&end));
 
     if (automatic) {
+        // 根据给定的核函数, 每个block要用的dyn shared mem等信息, 得到blockSize
         checkCudaErrors(cudaOccupancyMaxPotentialBlockSize(
                             &minGridSize,
                             &blockSize,
@@ -112,6 +115,7 @@ static int launchConfig(int *array, int arrayCount, bool automatic)
                             dynamicSMemUsage,
                             arrayCount));
 
+        // 推荐一个block有1024个thread, minGridSize做参考, gridSize 下面根据data算, 得到977 blocks
         std::cout << "Suggested block size: " << blockSize << std::endl
                   << "Minimum grid size for maximum occupancy: " << minGridSize << std::endl;
     } else {
@@ -120,6 +124,7 @@ static int launchConfig(int *array, int arrayCount, bool automatic)
         // threads will be limited, and thus unable to achieve maximum
         // occupancy.
         //
+        // 共31250个block, 每个block 32个thread, 处理1M个int
         blockSize = manualBlockSize;
     }
 

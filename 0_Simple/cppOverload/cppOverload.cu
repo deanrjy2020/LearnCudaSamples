@@ -128,9 +128,12 @@ int main(int argc, const char *argv[])
     // overload function 1
     func1 = simple_kernel;
     memset(&attr, 0, sizeof(attr));
+    // prefer larger shared memory and smaller L1 cache
     checkCudaErrors(cudaFuncSetCacheConfig(*func1, cudaFuncCachePreferShared));
+    // 核函数在编译的时候已经确定硬件资源的一些分配, 如shared mem size, register num, 都在attr里面.
     checkCudaErrors(cudaFuncGetAttributes(&attr, *func1));
     OUTPUT_ATTR(attr);
+    // 4个blocks, 每个256 threads
     (*func1)<<<DIV_UP(N, THREAD_N), THREAD_N>>>(dInput, dOutput, a);
     checkCudaErrors(cudaMemcpy(hOutput, dOutput, sizeof(int)*N, cudaMemcpyDeviceToHost));
     funcResult = check_func1(hInput, hOutput, a);

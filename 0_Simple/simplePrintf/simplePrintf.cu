@@ -25,6 +25,8 @@
 #define MAX(a,b) (a > b ? a : b)
 #endif
 
+// 第一个值是在grid里面一维的block id, 范围[0, 3]
+// 第二个值是在每个block里面一维的thread id, 范围[0, 7]
 __global__ void testKernel(int val)
 {
     printf("[%d, %d]:\t\tValue is:%d\n",\
@@ -51,6 +53,7 @@ int main(int argc, char **argv)
 
     //Kernel configuration, where a two-dimensional grid and
     //three-dimensional blocks are configured.
+    // 4个blocks, 每个block里面有8个threads
     dim3 dimGrid(2, 2);
     dim3 dimBlock(2, 2, 2);
     testKernel<<<dimGrid, dimBlock>>>(10);

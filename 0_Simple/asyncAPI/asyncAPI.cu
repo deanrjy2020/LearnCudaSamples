@@ -91,9 +91,13 @@ int main(int argc, char *argv[])
     checkCudaErrors(cudaDeviceSynchronize());
     float gpu_time = 0.0f;
 
+    // 用CPU记录call时间和event记录gpu执行时间, 对比.
     // asynchronously issue work to the GPU (all to stream 0)
     sdkStartTimer(&timer);
     cudaEventRecord(start, 0);
+    // cudaMemcpy 是同步内存拷贝，而 cudaMemcpyAsync 是异步内存拷贝。
+    // 简单来说，cudaMemcpy 会阻塞当前线程直到数据拷贝完成，而 cudaMemcpyAsync 不会阻塞，
+    // 允许程序在数据拷贝的同时继续执行其他任务。
     cudaMemcpyAsync(d_a, a, nbytes, cudaMemcpyHostToDevice, 0);
     increment_kernel<<<blocks, threads, 0, 0>>>(d_a, value);
     cudaMemcpyAsync(a, d_a, nbytes, cudaMemcpyDeviceToHost, 0);

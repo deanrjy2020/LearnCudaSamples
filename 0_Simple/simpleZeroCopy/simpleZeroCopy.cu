@@ -143,8 +143,29 @@ int main(int argc, char **argv)
     nelem = 1048576;
     bytes = nelem*sizeof(float);
 
+    /* dean:
+    | 对比项             | malloc + cudaHostRegisterMapped        | cudaHostAllocMapped        |
+    | ------------------ | -------------------------------------- | -------------------------- |
+    | 内存分配方式        | 手动 malloc                            | CUDA 自动分配 pinned memory |
+    | 是否锁页（Pinned）  | 是（通过 Register 实现）                | 是（由 HostAlloc 默认保证）  |
+    | 是否可映射给 device | 是（使用 `cudaHostRegisterMapped`）     | 是（由 flag 指定）          |
+    | 是否必须对齐        | ✅ 是（需要手动对齐，尤其 > 4K 时）      | ❌ 不用，CUDA 内部已处理    |
+    | 是否更灵活          | ✅ 更灵活（可管理原始指针）             | 相对简单但较黑箱             |
+    | 推荐平台            | 嵌入式/性能敏感场景（如 Jetson）         | 通用主机平台                |
+    | 清理内存            | 需调用 `cudaHostUnregister` + `free`   | 只需 `cudaFreeHost`         |
+
+    在 Jetson AGX Xavier 上的推荐
+    因为 Jetson 是 SoC 架构，共享物理内存，因此 Zero-Copy 效果很好。
+    malloc + cudaHostRegisterMapped 和 cudaHostAllocMapped 都是在 Host memory（CPU DRAM） 上分配。
+    ✅ Jetson 是 CPU/GPU 共用 DRAM，不像 PC dGPU 要跨 PCIe。
+    ✅ GPU 通过 IOMMU 可以直接访问这块 Host Memory（Zero-Copy）。
+    建议优先使用 cudaHostAllocMapped, 更方便，除非：
+        需要手动控制对齐（如 tensor 要求 4K 对齐），
+        或已有现成 malloc 指针需要注册成 pinned.
+     */
     if (bPinGenericMemory)
     {
+        // dean: 手动 malloc，然后注册为 pinned+mapped
 #if CUDART_VERSION >= 4000
         a_UA = (float *) malloc(bytes + MEMORY_ALIGNMENT);
         b_UA = (float *) malloc(bytes + MEMORY_ALIGNMENT);
@@ -162,6 +183,7 @@ int main(int argc, char **argv)
     }
     else
     {
+        // dean: 直接调用 cudaHostAlloc 分配 pinned+mapped 内存
 #if CUDART_VERSION >= 2020
         flags = cudaHostAllocMapped;
         checkCudaErrors(cudaHostAlloc((void **)&a, bytes, flags));
@@ -189,6 +211,7 @@ int main(int argc, char **argv)
 
     /* Call the GPU kernel using the CPU pointers residing in CPU mapped memory. */
     printf("> vectorAddGPU kernel will add vectors using mapped CPU memory...\n");
+    // 4096个block, 每个block 256个thread
     dim3 block(256);
     dim3 grid((unsigned int)ceil(nelem/(float)block.x));
     vectorAddGPU<<<grid, block>>>(d_a, d_b, d_c, nelem);

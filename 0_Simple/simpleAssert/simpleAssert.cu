@@ -78,6 +78,10 @@ void runTest(int argc, char **argv)
 
     printf("OS_System_Type.release = %s\n", OS_System_Type.release);
 
+    // print the rest of the OS_System_Type
+    printf("OS_System_Type.sysname = %s, OS_System_Type.nodename = %s, OS_System_Type.version = %s, OS_System_Type.machine = %s, OS_System_Type.domainname = %s\n",
+        OS_System_Type.sysname, OS_System_Type.nodename, OS_System_Type.version, OS_System_Type.machine, OS_System_Type.domainname);
+
     if (!strcasecmp(OS_System_Type.sysname, "Darwin"))
     {
         printf("simpleAssert is not current supported on Mac OSX\n\n");
@@ -95,6 +99,7 @@ void runTest(int argc, char **argv)
 
     // Kernel configuration, where a one-dimensional
     // grid and one-dimensional blocks are configured.
+    // 2个block, 每个32 thread
     dim3 dimGrid(Nblocks);
     dim3 dimBlock(Nthreads);
 

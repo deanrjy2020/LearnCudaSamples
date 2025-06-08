@@ -254,7 +254,7 @@ endif
 
 # Debug build flags
 ifeq ($(dbg),1)
-      NVCCFLAGS += -g -G
+      NVCCFLAGS += -g -G --ptxas-options=-v
       BUILD_TYPE := debug
 else
       BUILD_TYPE := release

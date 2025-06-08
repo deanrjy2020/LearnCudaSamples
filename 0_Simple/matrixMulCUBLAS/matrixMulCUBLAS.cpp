@@ -48,6 +48,55 @@
 // Piscataway, NJ: IEEE Press, 2008, pp. Art. 31:1-11.
 //
 
+/*
+
+例子: C++ row-major的矩阵乘法, C = A * B
+A[2][3]=
+1,2,3
+4,5,6
+
+B[3][2]=
+1,2
+3,4
+5,6
+
+C[2][2]=
+22,28
+49,64
+
+上面是, 但是传入cublas后, 是按col-major,
+A变成了(还是C++ row-major的思想就变成下面这样, 事实上内存layout没有变化):
+1,4
+2,5
+3,6
+结果就不对了.
+
+解决方法:
+CT = BT * AT
+
+BT就是C++的row-major的B传进来, cublas按col-major相当于就是C++的BT
+(还是C++ row-major的思想)
+BT[2][3]=
+1,3,5
+2,4,6
+
+同理C++的A直接传进cublas变成的下面这样
+(还是C++ row-major的思想去解释, mem layout不会变)
+AT[3][2]=
+1,4
+2,5
+3,6
+
+cublas计算的结果:
+如果是row-major, 就是这样的:
+22,49
+28,64
+但是在cublas是col-major, 是这样的:
+22,28
+49,64
+C++拿过来就是C矩阵, 不用做任何改动.
+*/
+
 // Utilities and system includes
 #include <assert.h>
 #include <helper_string.h>  // helper for shared functions common to CUDA Samples
@@ -236,6 +285,7 @@ int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size)
     checkCudaErrors(cudaMalloc((void **) &d_C, mem_size_C));
 
     // setup execution parameters
+    // 10*20个block, 每个block 32*32=1024个thread
     dim3 threads(block_size, block_size);
     dim3 grid(matrix_size.uiWC / threads.x, matrix_size.uiHC / threads.y);
 

@@ -31,13 +31,14 @@
 
 const char *sSDKsample = "simpleStreams";
 
-const char *sEventSyncMethod[] =
-{
-    "cudaEventDefault",
-    "cudaEventBlockingSync",
-    "cudaEventDisableTiming",
-    NULL
-};
+// 这个没用.
+// const char *sEventSyncMethod[] =
+// {
+//     "cudaEventDefault",
+//     "cudaEventBlockingSync",
+//     "cudaEventDisableTiming",
+//     NULL
+// };
 
 const char *sDeviceSyncMethod[] =
 {
@@ -329,6 +330,10 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaEventCreateWithFlags(&stop_event, eventflags));
 
     // time memcopy from device
+    // 默认的stream0和其他stream都是隐式同步, 具体见cuda page隐式同步.
+    // CUDA 保证：任意非默认 stream 的操作会等待默认 stream 的命令完成之后再执行，反之亦然
+    // 所以这里在stream0上记录时间, 在streams[0]上操作是可以的.
+    // 第一个时间试单单把16M个int从dev mem copy到host mem的时间.
     checkCudaErrors(cudaEventRecord(start_event, 0));     // record in stream-0, to ensure that all previous CUDA calls have completed
     checkCudaErrors(cudaMemcpyAsync(hAligned_a, d_a, nbytes, cudaMemcpyDeviceToHost, streams[0]));
     checkCudaErrors(cudaEventRecord(stop_event, 0));
@@ -337,6 +342,8 @@ int main(int argc, char **argv)
     printf("memcopy:\t%.2f\n", time_memcpy);
 
     // time kernel
+    // 32768=32k个block, 每个512 thread
+    // 第二个时间是单单做kernel的时间.
     threads=dim3(512, 1);
     blocks=dim3(n / threads.x, 1);
     checkCudaErrors(cudaEventRecord(start_event, 0));
@@ -348,6 +355,8 @@ int main(int argc, char **argv)
 
     //////////////////////////////////////////////////////////////////////
     // time non-streamed execution for reference
+    // 同样的32k个block, 每个512 thread
+    // kernel+memcpy的时间, 做10次求平均
     threads=dim3(512, 1);
     blocks=dim3(n / threads.x, 1);
     checkCudaErrors(cudaEventRecord(start_event, 0));
@@ -365,6 +374,8 @@ int main(int argc, char **argv)
 
     //////////////////////////////////////////////////////////////////////
     // time execution with nstreams streams
+    // 每个stream里面8192个block, 每个512个thread, 处理4M个int
+    // 一共4个stream处理16M个int
     threads=dim3(512,1);
     blocks=dim3(n/(nstreams*threads.x),1);
     memset(hAligned_a, 255, nbytes);     // set host memory bits to all 1s, for testing correctness
