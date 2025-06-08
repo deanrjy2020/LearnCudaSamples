@@ -31,13 +31,14 @@
 
 const char *sSDKsample = "simpleStreams";
 
-const char *sEventSyncMethod[] =
-{
-    "cudaEventDefault",
-    "cudaEventBlockingSync",
-    "cudaEventDisableTiming",
-    NULL
-};
+// 这个没用.
+// const char *sEventSyncMethod[] =
+// {
+//     "cudaEventDefault",
+//     "cudaEventBlockingSync",
+//     "cudaEventDisableTiming",
+//     NULL
+// };
 
 const char *sDeviceSyncMethod[] =
 {
@@ -334,16 +335,19 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaEventRecord(stop_event, 0));
     checkCudaErrors(cudaEventSynchronize(stop_event));   // block until the event is actually recorded
     checkCudaErrors(cudaEventElapsedTime(&time_memcpy, start_event, stop_event));
+    // 第一个时间试单单把16M个int从dev mem copy到host mem的时间.
     printf("memcopy:\t%.2f\n", time_memcpy);
 
     // time kernel
     threads=dim3(512, 1);
-    blocks=dim3(n / threads.x, 1);
+    blocks=dim3(n / threads.x, 1); // 32768=32k个block, 每个512 thread
     checkCudaErrors(cudaEventRecord(start_event, 0));
     init_array<<<blocks, threads, 0, streams[0]>>>(d_a, d_c, niterations);
     checkCudaErrors(cudaEventRecord(stop_event, 0));
     checkCudaErrors(cudaEventSynchronize(stop_event));
     checkCudaErrors(cudaEventElapsedTime(&time_kernel, start_event, stop_event));
+    // event在默认stream上, kernel在stream[0]上, 不理解为什么这么做, 最新版本还是一样, 感觉不像是bug.
+    // todo, 这里搞懂了在接下去看.
     printf("kernel:\t\t%.2f\n", time_kernel);
 
     //////////////////////////////////////////////////////////////////////

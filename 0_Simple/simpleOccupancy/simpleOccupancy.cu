@@ -57,6 +57,7 @@ static double reportPotentialOccupancy(void *kernel, int blockSize, size_t dynam
     checkCudaErrors(cudaGetDevice(&device));
     checkCudaErrors(cudaGetDeviceProperties(&prop, device));
 
+    // 这个函数很有意思.
     checkCudaErrors(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
                         &numBlocks,
                         kernel,
@@ -105,6 +106,7 @@ static int launchConfig(int *array, int arrayCount, bool automatic)
     checkCudaErrors(cudaEventCreate(&end));
 
     if (automatic) {
+        // 根据核函数square, 每个block要用的dyn shared mem等信息, 得到gridSize和blockSize
         checkCudaErrors(cudaOccupancyMaxPotentialBlockSize(
                             &minGridSize,
                             &blockSize,

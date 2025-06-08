@@ -94,6 +94,7 @@ int main(int argc, char *argv[])
     // asynchronously issue work to the GPU (all to stream 0)
     sdkStartTimer(&timer);
     cudaEventRecord(start, 0);
+    // 用CPU记录call时间和event记录gpu执行时间, 对比.
     cudaMemcpyAsync(d_a, a, nbytes, cudaMemcpyHostToDevice, 0);
     increment_kernel<<<blocks, threads, 0, 0>>>(d_a, value);
     cudaMemcpyAsync(a, d_a, nbytes, cudaMemcpyDeviceToHost, 0);

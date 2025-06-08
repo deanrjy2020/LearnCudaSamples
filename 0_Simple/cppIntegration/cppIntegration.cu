@@ -122,8 +122,12 @@ runTest(const int argc, const char **argv, char *data, int2 *data_int2, unsigned
     dim3 threads(num_threads, 1, 1);
     dim3 threads2(len, 1, 1); // more threads needed fir separate int2 version
     // execute the kernel
+    // 4个thread, 每个thread处理4个char, 即一个int (按int读取)
     kernel<<< grid, threads >>>((int *) d_data);
+    // 16个thread, 每个thread处理一个int2(=ivec2).
     kernel2<<< grid, threads2 >>>(d_data_int2);
+
+    // 两个kernel里面做的事情都是每个char值-10
 
     // check if kernel execution generated and error
     getLastCudaError("Kernel execution failed");

@@ -38,6 +38,7 @@
  * Matrix multiplication (CUDA Kernel) on the device: C = A * B
  * wA is A's width and wB is B's width
  */
+// 重点是理解smem在这里的作用, 完全理解, 见LearnAI/chapter2-cuda-programming/2.7-matmul-shared-memory
 template <int BLOCK_SIZE>
 __global__ void MatrixMulCUDA(float *C, float *A, float *B, int wA, int wB) {
   // Block index
@@ -190,6 +191,7 @@ int MatrixMultiply(int argc, char **argv, int block_size, const dim3 &dimsA,
   // Execute the kernel
   int nIter = 300;
 
+  // 这里用gpu做300次, 然后取平均.
   for (int j = 0; j < nIter; j++) {
     if (block_size == 16) {
       MatrixMulCUDA<16>
@@ -292,6 +294,7 @@ int main(int argc, char **argv) {
 
   int block_size = 32;
 
+  // row col 表示: A 320x320, B 320x640, C 320x640
   dim3 dimsA(5 * 2 * block_size, 5 * 2 * block_size, 1);
   dim3 dimsB(5 * 4 * block_size, 5 * 2 * block_size, 1);
 
@@ -321,6 +324,7 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
+  // 这里其实非常confuse, x为col, y为row
   printf("MatrixA(%d,%d), MatrixB(%d,%d)\n", dimsA.x, dimsA.y, dimsB.x,
          dimsB.y);
 

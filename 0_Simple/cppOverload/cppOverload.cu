@@ -74,6 +74,7 @@ bool check_func3(int *hInput1, int *hInput2, int *hOutput, int a)
     return true;
 }
 
+// todo, 重新理解三个核函数里面smem的含义, 如何做的.
 int main(int argc, const char *argv[])
 {
     int *hInput  = NULL;
@@ -128,7 +129,9 @@ int main(int argc, const char *argv[])
     // overload function 1
     func1 = simple_kernel;
     memset(&attr, 0, sizeof(attr));
+    // prefer larger shared memory and smaller L1 cache
     checkCudaErrors(cudaFuncSetCacheConfig(*func1, cudaFuncCachePreferShared));
+    // 核函数在编译的时候已经确定硬件资源的一些分配, 如shared mem size, register num, 都在attr里面.
     checkCudaErrors(cudaFuncGetAttributes(&attr, *func1));
     OUTPUT_ATTR(attr);
     (*func1)<<<DIV_UP(N, THREAD_N), THREAD_N>>>(dInput, dOutput, a);
